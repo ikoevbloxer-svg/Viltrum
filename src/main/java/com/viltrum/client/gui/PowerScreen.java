@@ -227,19 +227,19 @@ public class PowerScreen extends Screen {
     }
 
     private void unlocks(GuiGraphics g, float al) {
-        String[] names = {"gui.viltrum.u.senses", "gui.viltrum.u.grab", "gui.viltrum.u.clap"};
-        int[] lvls = {PowerMath.UNLOCK_SENSES, PowerMath.UNLOCK_GRAB, PowerMath.UNLOCK_CLAP};
-        net.minecraft.client.KeyMapping[] keys = {ModKeys.SENSES, ModKeys.GRAB, ModKeys.CLAP};
-        int y = py + 204, x0 = px + 14, cw = (W - 28 - 2 * 8) / 3;
-        for (int i = 0; i < 3; i++) {
-            int x = x0 + i * (cw + 8);
+        String[] names = {"gui.viltrum.u.senses", "gui.viltrum.u.grab", "gui.viltrum.u.clap", "gui.viltrum.u.rage", "gui.viltrum.u.stomp"};
+        int[] lvls = {PowerMath.UNLOCK_SENSES, PowerMath.UNLOCK_GRAB, PowerMath.UNLOCK_CLAP, PowerMath.UNLOCK_RAGE, PowerMath.UNLOCK_STOMP};
+        net.minecraft.client.KeyMapping[] keys = {ModKeys.SENSES, ModKeys.GRAB, ModKeys.CLAP, ModKeys.RAGE, ModKeys.STOMP};
+        int y = py + 202, x0 = px + 14, gap = 6, cw = (W - 28 - 4 * gap) / 5;
+        for (int i = 0; i < 5; i++) {
+            int x = x0 + i * (cw + gap);
             boolean ok = d.level >= lvls[i];
-            rr(g, x, y, x + cw, y + 20, 5, a(al, ok ? 0x123826 : 0x1A1F2B));
-            g.fill(x, y + 4, x + 2, y + 16, a(al, ok ? 0x35E08A : 0x4A5568));
-            String label = Component.translatable(names[i]).getString();
-            text(g, label, x + 8, y + 6, a(al, ok ? TEXT : DIM), 0.8f);
+            int accent = i == 3 ? 0xFF4D3D : 0x35E08A;
+            rr(g, x, y, x + cw, y + 26, 5, a(al, ok ? (i == 3 ? 0x3A1512 : 0x123826) : 0x1A1F2B));
+            g.fill(x, y + 4, x + 2, y + 22, a(al, ok ? accent : 0x4A5568));
+            text(g, Component.translatable(names[i]).getString(), x + 7, y + 4, a(al, ok ? TEXT : DIM), 0.75f);
             String tag = ok ? "[" + keys[i].getTranslatedKeyMessage().getString() + "]" : "LV " + lvls[i];
-            text(g, tag, x + cw - 6 - (int) (font.width(tag) * 0.8f), y + 6, a(al, ok ? 0xFF7FE8FF : 0xFFF7C61C), 0.8f);
+            text(g, tag, x + 7, y + 15, a(al, ok ? 0xFF7FE8FF : 0xFFF7C61C), 0.75f);
         }
     }
 

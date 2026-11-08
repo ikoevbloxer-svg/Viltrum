@@ -141,5 +141,13 @@
       }
     ],
     "subtitle": "subtitles.viltrum.grab"
+  },
+  "rage": {
+    "sounds": [
+      {
+        "name": "viltrum:rage"
+      }
+    ],
+    "subtitle": "subtitles.viltrum.rage"
   }
 }

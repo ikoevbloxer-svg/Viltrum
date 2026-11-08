@@ -73,7 +73,16 @@
   "gui.viltrum.u.senses": "Чувства",
   "gui.viltrum.u.grab": "Хват за шею",
   "gui.viltrum.u.clap": "Громовой хлопок",
-  "gui.viltrum.hud.grab": "ДЕРЖИШЬ   [%s] бросок   [%s] избиение   [%s] отпустить",
+  "gui.viltrum.hud.grab": "ДЕРЖИШЬ   [%s] бросок   [%s] убить   [%s] избиение   [%s] отпустить",
   "gui.viltrum.hud.senses": "ЧУВСТВА",
-  "subtitles.viltrum.grab": "Хватка сжимается"
+  "subtitles.viltrum.grab": "Хватка сжимается",
+  "key.viltrum.rage": "Ярость (ур. 12)",
+  "key.viltrum.stomp": "Топот (ур. 18)",
+  "key.viltrum.kill": "Убить схваченного",
+  "msg.viltrum.rage_cooldown": "Ярость восстанавливается: %s с",
+  "msg.viltrum.awaken.title": "Кровь пробуждается",
+  "msg.viltrum.awaken.subtitle": "Ты вилтрумит",
+  "gui.viltrum.u.rage": "Ярость",
+  "gui.viltrum.u.stomp": "Топот",
+  "subtitles.viltrum.rage": "Рёв"
 }

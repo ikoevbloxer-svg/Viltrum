@@ -137,6 +137,19 @@ def grab_sound():
     x = np.tanh(1.4 * (cloth + thud + creak))
     return fade(norm(x, 0.9), 0.001, 0.08)
 
+def rage_roar():
+    sec = 2.4; n = int(SR * sec); t = np.arange(n) / SR
+    f0 = 62 + 18 * np.sin(2 * np.pi * 0.7 * t) - 14 * t / sec
+    ph = 2 * np.pi * np.cumsum(f0) / SR
+    saw = 2 * ((ph / (2 * np.pi)) % 1) - 1
+    growl = saw * (0.55 + 0.45 * np.sign(np.sin(2 * np.pi * 27 * t)) * 0.5)
+    formant = shaped_noise(n, bp(250, 1100, 2), 61); formant /= np.std(formant)
+    rasp = shaped_noise(n, bp(1500, 5200, 1.4), 62); rasp /= np.std(rasp)
+    env = np.minimum(1, t / 0.12) * np.exp(-np.maximum(0, t - 0.9) * 1.1)
+    sub = np.sin(2 * np.pi * (48 + 12 * np.exp(-t * 3)) * t) * np.exp(-t * 1.3) * 1.3
+    x = np.tanh(2.2 * (growl * 0.8 * env + formant * 0.55 * env + rasp * 0.25 * env * np.exp(-t * 1.5) + sub))
+    return fade(norm(x, 0.95), 0.004, 0.25)
+
 # ---------------------------------------------------------------- build
 def main():
     print('synthesizing...')
@@ -150,6 +163,7 @@ def main():
     write_ogg('charge', charge())
     write_ogg('suit_equip', suit_equip())
     write_ogg('grab', grab_sound())
+    write_ogg('rage', rage_roar())
 
     print('converting user sounds...')
     up = '/mnt/user-data/uploads/'

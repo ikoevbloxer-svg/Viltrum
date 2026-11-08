@@ -31,6 +31,13 @@ public class PowerEvents {
         if (e.getEntity() instanceof ServerPlayer sp) {
             PowerData d = PowerSync.get(sp);
             d.flying = false; d.boosting = false; d.charging = false; d.barraging = false;
+            if (!d.rolled) { // first time in this world: a chance that the blood simply awakens
+                d.rolled = true;
+                if (!d.viltrumite && sp.getRandom().nextDouble() < com.viltrum.Config.FIRST_JOIN_CHANCE.get()) {
+                    d.viltrumite = true;
+                    ServerPower.awakenFx(sp);
+                }
+            }
             PowerSync.sync(sp);
         }
     }
@@ -134,7 +141,7 @@ public class PowerEvents {
 
     @SubscribeEvent
     public static void onDeathRevive(LivingDeathEvent e) {
-        if (e.getEntity() instanceof ReanimenEntity r && r.tryRevive()) e.setCanceled(true);
+        if (e.getEntity() instanceof ReanimenEntity r && !Combat.noRevive && r.tryRevive()) e.setCanceled(true);
         if (e.getEntity() instanceof ServerPlayer sp) GrabHandler.forget(sp);
     }
 

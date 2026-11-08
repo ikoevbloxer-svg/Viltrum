@@ -32,6 +32,7 @@ public class PowerHud implements LayeredDraw.Layer {
         float time = (mc.player.tickCount + pt);
 
         float sf = d.flying ? (float) Mth.clamp((FlightController.speed - 0.8) / 2.6, 0.0, 1.0) : 0f;
+        if (d.rageAmt > 0.02f) rageOverlay(g, w, h, d.rageAmt, time);
         if (sf > 0.02f) {
             vignette(g, w, h, sf);
             speedLines(g, w, h, sf, time);
@@ -44,9 +45,25 @@ public class PowerHud implements LayeredDraw.Layer {
         if (d.flying) gauge(g, d, w, h);
         chip(g, mc, d, w, h);
         if (d.grabbedId >= 0) {
-            g.drawCenteredString(mc.font, Component.translatable("gui.viltrum.hud.grab", com.viltrum.client.ModKeys.STRIKE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.BARRAGE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.GRAB.getTranslatedKeyMessage()), w / 2, h - 80, 0xFFFFC060);
+            g.drawCenteredString(mc.font, Component.translatable("gui.viltrum.hud.grab", com.viltrum.client.ModKeys.STRIKE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.KILL.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.BARRAGE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.GRAB.getTranslatedKeyMessage()), w / 2, h - 80, 0xFFFFC060);
         }
         if (d.senses) g.drawString(mc.font, Component.translatable("gui.viltrum.hud.senses"), 6, h - 34, 0xFF7FE8FF, false);
+    }
+
+    private void rageOverlay(GuiGraphics g, int w, int h, float amt, float time) {
+        float pulse = 0.75f + 0.25f * Mth.sin(time * 0.35f);
+        int c = Math.min(w, h) / 3;
+        int edge = argb(0.5f * amt * pulse, 0x8A0A06), clear = argb(0f, 0x8A0A06);
+        g.fillGradient(0, 0, w, c, edge, clear);
+        g.fillGradient(0, h - c, w, h, clear, edge);
+        int strips = 16;
+        for (int i = 0; i < strips; i++) {
+            float k = 1f - i / (float) strips;
+            int a = argb(0.4f * amt * pulse * k * k, 0x8A0A06);
+            int sw = c / strips + 1;
+            g.fill(i * sw, 0, (i + 1) * sw, h, a);
+            g.fill(w - (i + 1) * sw, 0, w - i * sw, h, a);
+        }
     }
 
     private void vignette(GuiGraphics g, int w, int h, float sf) {
@@ -132,11 +149,11 @@ public class PowerHud implements LayeredDraw.Layer {
 
     private void chip(GuiGraphics g, Minecraft mc, PowerData d, int w, int h) {
         var font = mc.font;
-        String s = "LV " + d.level + "   OUTPUT " + Math.round(d.strength * 100) + "%";
+        String s = "LV " + d.level + "   OUTPUT " + Math.round(PowerMath.eff(d) * 100) + "%";
         int tw = font.width(s);
         int x = 6, y = h - 22;
         g.fill(x, y, x + tw + 12, y + 14, argb(0.55f, 0x05080F));
-        g.fill(x, y, x + 2, y + 14, argb(1f, d.strength > 0.75f ? 0xFF5A3D : d.strength > 0.4f ? 0xF7C61C : 0x35E08A));
+        g.fill(x, y, x + 2, y + 14, argb(1f, PowerMath.eff(d) > 0.75 ? 0xFF5A3D : PowerMath.eff(d) > 0.4 ? 0xF7C61C : 0x35E08A));
         g.drawString(font, s, x + 7, y + 3, 0xFFE8F4FF, false);
         int bw = tw + 12;
         g.fill(x, y + 14, x + bw, y + 16, argb(0.5f, 0x000000));

@@ -75,6 +75,9 @@ public final class FlightController {
             while (ModKeys.GRAB.consumeClick()) { }
             while (ModKeys.SENSES.consumeClick()) { }
             while (ModKeys.CLAP.consumeClick()) { }
+            while (ModKeys.RAGE.consumeClick()) { }
+            while (ModKeys.STOMP.consumeClick()) { }
+            while (ModKeys.KILL.consumeClick()) { }
             charging = false; chargeFrac = 0f;
             return;
         }
@@ -82,6 +85,9 @@ public final class FlightController {
         while (ModKeys.GRAB.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(6));
         while (ModKeys.SENSES.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(7));
         while (ModKeys.CLAP.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(8));
+        while (ModKeys.RAGE.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(9));
+        while (ModKeys.STOMP.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(10));
+        while (ModKeys.KILL.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(11));
 
         // double tap jump starts flight (like creative)
         boolean jump = o.keyJump.isDown() && mc.screen == null;
@@ -121,6 +127,7 @@ public final class FlightController {
         if (!d.barraging && barrageHeld && !ModKeys.BARRAGE.isDown()) barrageHeld = false;
 
         if (d.barraging) CameraShake.add(0.018f);
+        if (d.rageAmt > 0.05f) CameraShake.add(0.01f * d.rageAmt);
 
         // speed rumble + fov inputs
         float sf = (float) Mth.clamp((speed - 1.2) / 3.0, 0.0, 1.0);

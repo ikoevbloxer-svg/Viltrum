@@ -14,5 +14,9 @@ public final class ModKeys {
     public static final KeyMapping SENSES = new KeyMapping("key.viltrum.senses", GLFW.GLFW_KEY_N, CATEGORY);
     public static final KeyMapping CLAP = new KeyMapping("key.viltrum.clap", GLFW.GLFW_KEY_H, CATEGORY);
 
+    public static final KeyMapping RAGE = new KeyMapping("key.viltrum.rage", GLFW.GLFW_KEY_R, CATEGORY);
+    public static final KeyMapping STOMP = new KeyMapping("key.viltrum.stomp", GLFW.GLFW_KEY_J, CATEGORY);
+    public static final KeyMapping KILL = new KeyMapping("key.viltrum.kill", GLFW.GLFW_KEY_K, CATEGORY);
+
     private ModKeys() {}
 }

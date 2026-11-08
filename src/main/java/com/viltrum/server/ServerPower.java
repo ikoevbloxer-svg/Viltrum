@@ -59,6 +59,8 @@ public final class ServerPower {
         }
 
         if (d.barraging) Combat.tickBarrage(p, d);
+        tickRage(p, d);
+        if (d.stompAt > 0 && p.level().getGameTime() >= d.stompAt) { d.stompAt = 0; Combat.stompImpact(p, d); }
         if (d.grabbedId >= 0) GrabHandler.tick(p, d);
         if (d.senses) sensesTick(p, d);
         if (d.flying) flightTick(p, d);
@@ -102,17 +104,19 @@ public final class ServerPower {
         double footY = p.getY();
         boolean diving = dir.y < -0.45;
         double reach = speed > 3.0 ? 2.4 : 2.0;
+        double width = 0.9 + 0.8 * Math.min(1.0, PowerMath.eff(d) * d.level / 30.0);
+        int r = (int) Math.ceil(width);
         int budget = Config.MAX_BLOCKS_PER_TICK.get();
         int smashed = 0;
         for (double t = 1.0; t <= reach && budget > 0; t += 0.5) {
             Vec3 c = base.add(dir.scale(t));
             BlockPos cp = BlockPos.containing(c);
-            for (int dx = -1; dx <= 1 && budget > 0; dx++)
-                for (int dy = -1; dy <= 1 && budget > 0; dy++)
-                    for (int dz = -1; dz <= 1 && budget > 0; dz++) {
+            for (int dx = -r; dx <= r && budget > 0; dx++)
+                for (int dy = -r; dy <= r && budget > 0; dy++)
+                    for (int dz = -r; dz <= r && budget > 0; dz++) {
                         BlockPos bp = cp.offset(dx, dy, dz);
                         Vec3 bc = bp.getCenter();
-                        if (bc.distanceToSqr(c) > 0.9 * 0.9) continue;
+                        if (bc.distanceToSqr(c) > width * width) continue;
                         if (bc.subtract(base).dot(dir) < 0.6) continue;               // must be ahead of us
                         if (!diving && bp.getY() + 1 <= footY + 0.01) continue;       // never the ground we skim over
                         if (BlockSmasher.smash(p, level, bp, hard, (smashed & 1) == 0)) { budget--; smashed++; }
@@ -121,6 +125,55 @@ public final class ServerPower {
         if (smashed > 2 && p.tickCount % 5 == 0) {
             Combat.play(level, p.position().add(dir.scale(2)), ModSounds.LANDING.get(), 0.8f, 1.3f);
         }
+    }
+
+    // ------------------------------------------------------------------ rage
+    public static void toggleRage(ServerPlayer p, PowerData d) {
+        long now = p.level().getGameTime();
+        if (d.rage) { endRage(p, d, 120); return; }
+        if (d.level < PowerMath.UNLOCK_RAGE) {
+            p.displayClientMessage(Component.translatable("msg.viltrum.locked", PowerMath.UNLOCK_RAGE), true);
+            return;
+        }
+        if (now < d.rageCooldownUntil) {
+            p.displayClientMessage(Component.translatable("msg.viltrum.rage_cooldown", (d.rageCooldownUntil - now) / 20 + 1), true);
+            return;
+        }
+        d.rage = true;
+        d.rageTicks = 400 + 8 * d.level;
+        Combat.play(p.serverLevel(), p.position(), ModSounds.RAGE.get(), 1.6f, 1.0f);
+        PowerSync.fx(p.serverLevel(), FxPayload.RAGE, p.position().add(0, 0.9, 0), Vec3.ZERO, 1f, p.getId());
+        PowerSync.sync(p);
+    }
+
+    private static void endRage(ServerPlayer p, PowerData d, int cooldownTicks) {
+        d.rage = false;
+        d.rageCooldownUntil = p.level().getGameTime() + cooldownTicks;
+        PowerSync.sync(p);
+    }
+
+    private static void tickRage(ServerPlayer p, PowerData d) {
+        if (d.rage) {
+            if (d.level < PowerMath.UNLOCK_RAGE) { endRage(p, d, 0); return; }
+            d.rageAmt = Math.min(1f, d.rageAmt + 1f / 30f);
+            if (--d.rageTicks <= 0) endRage(p, d, 260);
+        } else if (d.rageAmt > 0f) {
+            d.rageAmt = Math.max(0f, d.rageAmt - 1f / 40f);
+        }
+        if (Math.abs(d.rageAmt - d.rageSynced) > 0.05f || (d.rageAmt == 0f && d.rageSynced != 0f)) {
+            d.rageSynced = d.rageAmt;
+            PowerSync.sync(p);
+        }
+    }
+
+    /** title shown when the Viltrumite blood awakens by itself (first-join lottery). */
+    public static void awakenFx(ServerPlayer p) {
+        p.connection.send(new ClientboundSetTitlesAnimationPacket(10, 70, 25));
+        p.connection.send(new ClientboundSetTitleTextPacket(Component.translatable("msg.viltrum.awaken.title")));
+        p.connection.send(new ClientboundSetSubtitleTextPacket(Component.translatable("msg.viltrum.awaken.subtitle")));
+        ServerLevel level = p.serverLevel();
+        level.playSound(null, p.getX(), p.getY(), p.getZ(), ModSounds.LEVEL_UP.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
+        PowerSync.fx(level, FxPayload.LEVEL_UP, p.position().add(0, 0.2, 0), Vec3.ZERO, 1f, p.getId());
     }
 
     private static void sensesTick(ServerPlayer p, PowerData d) {

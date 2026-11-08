@@ -149,15 +149,19 @@ public final class GrabHandler {
         t.setYRot(yaw);
         t.setYHeadRot(yaw);
         t.yBodyRot = yaw;
+    }
 
-        // the squeeze: respects the output limiter, so turning the limiter down means holding without hurting
-        if (p.tickCount % 10 == 0 && d.strength >= 0.15f) {
-            float dmg = (float) (1.0 + (PowerMath.fullPunch(d.level) * 0.05) * d.strength * d.strength);
-            Combat.hurtOnly(p, t, dmg);
-            ServerLevel level = p.serverLevel();
-            level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, t.getX(), t.getY() + t.getBbHeight() * 0.85, t.getZ(), 2, 0.2, 0.1, 0.2, 0.0);
-            if (p.tickCount % 20 == 0) Combat.play(level, t.position(), ModSounds.BONE_CRACK.get(), 0.35f, 0.6f);
-        }
+    /** execute the held creature. Only ever happens when the player explicitly asks for it. */
+    public static void kill(ServerPlayer p, PowerData d) {
+        LivingEntity t = target(p);
+        if (t == null) return;
+        ServerLevel level = p.serverLevel();
+        Vec3 c = t.getBoundingBox().getCenter();
+        Combat.noRevive = true;
+        try { Combat.hurtOnly(p, t, 1.0e6f); } finally { Combat.noRevive = false; }
+        Combat.play(level, c, ModSounds.BONE_CRACK.get(), 1.6f, 0.7f);
+        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, p.getLookAngle().scale(-1), 1.0f, p.getId());
+        release(p, d, false, 0f);
     }
 
     // ------------------------------------------------------------------ thrown victims
@@ -174,8 +178,8 @@ public final class GrabHandler {
                 ServerPlayer owner = server.getPlayerList().getPlayer(th.owner);
                 if (owner == null) continue;
                 PowerData od = PowerSync.get(owner);
-                double energy = th.speed * (0.35 + 0.65 * od.strength);
-                float dmg = (float) (PowerMath.fullPunch(od.level) * 0.5 * Math.min(2.0, th.speed / 3.0) * od.strength * od.strength + 2.0);
+                double energy = th.speed * (0.35 + 0.65 * PowerMath.eff(od));
+                float dmg = (float) (PowerMath.fullPunch(od.level) * 0.5 * Math.min(2.0, th.speed / 3.0) * PowerMath.eff(od) * PowerMath.eff(od) + 2.0);
                 Combat.hurtOnly(owner, le, dmg);
                 Combat.play(th.level, le.position(), ModSounds.BONE_CRACK.get(), 1.2f, 0.9f);
                 Combat.play(th.level, le.position(), ModSounds.LANDING.get(), 1.2f, 0.9f);

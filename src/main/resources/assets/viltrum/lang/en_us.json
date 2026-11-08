@@ -73,7 +73,16 @@
   "gui.viltrum.u.senses": "Senses",
   "gui.viltrum.u.grab": "Neck grab",
   "gui.viltrum.u.clap": "Thunderclap",
-  "gui.viltrum.hud.grab": "HOLDING   [%s] hurl   [%s] pummel   [%s] release",
+  "gui.viltrum.hud.grab": "HOLDING   [%s] hurl   [%s] kill   [%s] pummel   [%s] release",
   "gui.viltrum.hud.senses": "SENSES",
-  "subtitles.viltrum.grab": "Grip tightens"
+  "subtitles.viltrum.grab": "Grip tightens",
+  "key.viltrum.rage": "Rage (level 12)",
+  "key.viltrum.stomp": "Stomp (level 18)",
+  "key.viltrum.kill": "Kill the held creature",
+  "msg.viltrum.rage_cooldown": "Rage is recovering: %s s",
+  "msg.viltrum.awaken.title": "The blood awakens",
+  "msg.viltrum.awaken.subtitle": "You are a Viltrumite",
+  "gui.viltrum.u.rage": "Rage",
+  "gui.viltrum.u.stomp": "Stomp",
+  "subtitles.viltrum.rage": "Roar"
 }

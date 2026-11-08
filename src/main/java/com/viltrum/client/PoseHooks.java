@@ -15,6 +15,8 @@ public final class PoseHooks {
     public static void apply(HumanoidModel<?> m, LivingEntity e, float age) {
         // the one being held dangles
         if (ActionVisuals.HELD.containsKey(e.getId())) { dangling(m, age); return; }
+        Integer stompStart = ActionVisuals.STOMP.get(e.getId());
+        if (stompStart != null) { stomp(m, e.tickCount - stompStart + 0.5f); return; }
 
         FlightVisuals.Track t = FlightVisuals.TRACKS.get(e.getId());
         if (e instanceof Player p) {
@@ -23,11 +25,46 @@ public final class PoseHooks {
             if (d.flying && t != null) { flight(m, t, age); return; }
             if (d.barraging) { barrage(m, age, d.grabbedId >= 0); return; }
             if (d.grabbedId >= 0) { hold(m, age); return; }
-            if (d.charging) charge(m, age);
+            if (d.charging) { charge(m, age); return; }
+            if (d.rageAmt > 0.3f) rageStance(m, age, d.rageAmt);
         } else if (e instanceof ViltrumiteEntity v) {
             if (v.isFlyingPose() && t != null) flight(m, t, age);
             else if (v.getGrabTarget() >= 0) hold(m, age);
         }
+    }
+
+    /** raise the knee high, then drive the foot into the ground. */
+    private static void stomp(HumanoidModel<?> m, float t) {
+        neutral(m);
+        float up = Mth.clamp(t / 6f, 0f, 1f);              // wind-up
+        float down = Mth.clamp((t - 6f) / 2f, 0f, 1f);     // the stamp
+        float rec = Mth.clamp((t - 8f) / 8f, 0f, 1f);      // recovery
+        float leg = Mth.lerp(up, 0f, -1.45f);
+        leg = Mth.lerp(down, leg, 0.35f);
+        leg = Mth.lerp(rec, leg, 0f);
+        m.rightLeg.xRot = leg;
+        m.rightLeg.yRot = 0.08f;
+        m.leftLeg.xRot = Mth.lerp(down * (1f - rec), 0f, -0.1f);
+        float lean = Mth.lerp(up, 0f, -0.25f);
+        lean = Mth.lerp(down, lean, 0.3f);
+        lean = Mth.lerp(rec, lean, 0f);
+        m.body.xRot = lean;
+        float arms = Mth.lerp(up * (1f - down), 0f, 1f);
+        m.rightArm.zRot = 0.9f * arms; m.leftArm.zRot = -0.9f * arms;
+        m.rightArm.xRot = -0.3f * arms; m.leftArm.xRot = -0.3f * arms;
+        m.head.xRot = Mth.lerp(down * (1f - rec), m.head.xRot, 0.35f);
+        m.hat.copyFrom(m.head);
+    }
+
+    /** clenched, flared arms and a hunched, trembling torso. */
+    private static void rageStance(HumanoidModel<?> m, float age, float amt) {
+        float tr = Mth.sin(age * 2.3f) * 0.02f * amt;
+        m.body.xRot = 0.18f * amt;
+        m.rightArm.zRot += 0.55f * amt + tr; m.leftArm.zRot -= 0.55f * amt + tr;
+        m.rightArm.xRot = Mth.lerp(amt, m.rightArm.xRot, -0.35f);
+        m.leftArm.xRot = Mth.lerp(amt, m.leftArm.xRot, -0.35f);
+        m.head.xRot = Mth.lerp(amt, m.head.xRot, 0.25f);
+        m.hat.copyFrom(m.head);
     }
 
     private static void neutral(HumanoidModel<?> m) {

@@ -26,6 +26,8 @@ import java.util.Optional;
 public final class Combat {
     /** set while we deal damage ourselves so that the damage event does not amplify it a second time. */
     public static boolean internal = false;
+    /** set while an execution / stomp kills things so that Reanimen cannot get back up. */
+    public static boolean noRevive = false;
 
     private Combat() {}
 
@@ -121,12 +123,12 @@ public final class Combat {
             if (ok && dmg >= 22f) play(level, impact, ModSounds.BONE_CRACK.get(), 1.0f, 0.9f + level.random.nextFloat() * 0.2f);
         }
 
-        double energy = (0.4 + 2.2 * charge) * (0.4 + 0.6 * d.strength);
-        float strengthFx = (float) (0.3 + 0.7 * charge * d.strength);
-        if (charge >= 0.5f && d.strength > 0.3f) {
+        double energy = (0.4 + 2.2 * charge) * (0.4 + 0.6 * PowerMath.eff(d));
+        float strengthFx = (float) (0.3 + 0.7 * charge * PowerMath.eff(d));
+        if (charge >= 0.5f && PowerMath.eff(d) > 0.3f) {
             play(level, impact, ModSounds.PUNCH_SUPER.get(), 1.4f, 1.0f);
             // shock wave: damages everything around the impact
-            double radius = 2.5 + 5.0 * charge * (0.4 + 0.6 * d.strength);
+            double radius = 2.5 + 5.0 * charge * (0.4 + 0.6 * PowerMath.eff(d));
             for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(impact, impact).inflate(radius),
                     x -> x != p && x != target && x.isAlive())) {
                 double dist = e.position().distanceTo(impact);
@@ -179,7 +181,7 @@ public final class Combat {
         t.invulnerableTime = 0; // allow the next rapid hit
         ServerLevel level = p.serverLevel();
         Vec3 c = t.getBoundingBox().getCenter();
-        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, look.scale(-1), 0.35f + 0.5f * d.strength, p.getId());
+        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, look.scale(-1), 0.35f + 0.5f * PowerMath.eff(d), p.getId());
         if (now % 4 == 0) play(level, c, ModSounds.PUNCH_HEAVY.get(), 0.55f, 1.15f + level.random.nextFloat() * 0.25f);
         if (now % 12 == 0 && dmg > 12f) play(level, c, ModSounds.BONE_CRACK.get(), 0.6f, 0.9f + level.random.nextFloat() * 0.3f);
     }
@@ -196,7 +198,7 @@ public final class Combat {
         d.lastClap = now;
         p.swing(InteractionHand.MAIN_HAND, true);
         Vec3 c = p.position().add(0, 0.9, 0);
-        double radius = 5.0 + 0.3 * d.level * (0.3 + 0.7 * d.strength);
+        double radius = 5.0 + 0.3 * d.level * (0.3 + 0.7 * PowerMath.eff(d));
         float dmg = PowerMath.punchDamage(d) * 0.45f * PowerMath.suitDamageMult(p);
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(radius), x -> x != p && x.isAlive())) {
             double dist = e.position().distanceTo(c);
@@ -206,9 +208,57 @@ public final class Combat {
         }
         play(level, c, ModSounds.SLAM.get(), 1.6f, 1.15f);
         play(level, c, ModSounds.SONIC_BOOM.get(), 1.2f, 1.2f);
-        PowerSync.fx(level, FxPayload.SHOCKWAVE, p.position().add(0, 0.1, 0), new Vec3(0, 1, 0), (float) Mth.clamp(0.4 + d.strength * 0.6, 0, 1), p.getId());
+        PowerSync.fx(level, FxPayload.SHOCKWAVE, p.position().add(0, 0.1, 0), new Vec3(0, 1, 0), (float) Mth.clamp(0.4 + PowerMath.eff(d) * 0.6, 0, 1), p.getId());
         PowerSync.fx(level, FxPayload.SONIC_BOOM, c, new Vec3(0, 1, 0), 1.0f, p.getId());
         ServerPower.addXp(p, d, 3.0);
+    }
+
+    // ------------------------------------------------------------------ stomp (level 18+)
+    public static void stomp(ServerPlayer p, PowerData d) {
+        if (d.level < PowerMath.UNLOCK_STOMP) {
+            p.displayClientMessage(net.minecraft.network.chat.Component.translatable("msg.viltrum.locked", PowerMath.UNLOCK_STOMP), true);
+            return;
+        }
+        ServerLevel level = p.serverLevel();
+        long now = level.getGameTime();
+        if (now - d.lastStomp < 70 || d.stompAt > 0) return;
+        d.lastStomp = now;
+        d.stompAt = now + 7; // the foot comes down after the wind-up animation
+        PowerSync.fx(level, FxPayload.STOMP, p.position(), Vec3.ZERO, 1f, p.getId());
+        play(level, p.position(), ModSounds.CHARGE.get(), 0.7f, 1.6f);
+    }
+
+    /** the foot lands: every hostile creature around dies, everything else is only shoved away. */
+    public static void stompImpact(ServerPlayer p, PowerData d) {
+        ServerLevel level = p.serverLevel();
+        double eff = PowerMath.eff(d);
+        double radius = 8.0 + 0.4 * d.level * (0.4 + 0.6 * Math.min(1.0, eff));
+        Vec3 c = p.position();
+        int killed = 0;
+        boolean prevRevive = noRevive;
+        noRevive = true;
+        try {
+            for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(radius, radius * 0.6, radius), x -> x != p && x.isAlive())) {
+                double dist = e.position().distanceTo(c);
+                if (dist > radius) continue;
+                if (e instanceof net.minecraft.world.entity.monster.Enemy && !(e instanceof Player)) {
+                    hurtOnly(p, e, 1.0e6f);
+                    if (!e.isAlive()) killed++;
+                } else {
+                    Vec3 away = e.position().subtract(c).multiply(1, 0, 1);
+                    away = away.lengthSqr() < 1e-4 ? new Vec3(0, 0, 0) : away.normalize();
+                    float f = (float) (1.0 - dist / radius * 0.7);
+                    e.setDeltaMovement(e.getDeltaMovement().add(away.x * 0.9 * f, 0.5 * f, away.z * 0.9 * f));
+                    e.hurtMarked = true;
+                }
+            }
+        } finally { noRevive = prevRevive; }
+        play(level, c, ModSounds.SLAM.get(), 2.0f, 0.85f);
+        play(level, c, ModSounds.SONIC_BOOM.get(), 1.6f, 0.9f);
+        play(level, c, ModSounds.LANDING.get(), 1.6f, 0.7f);
+        PowerSync.fx(level, FxPayload.STOMP_IMPACT, c, new Vec3(0, 1, 0), (float) radius, p.getId());
+        if (PowerMath.breakHardness(d) > 0) crater(p, d, c.add(0, -0.3, 0), 3.0 * Math.max(0.5, eff));
+        ServerPower.addXp(p, d, 4.0 + killed * 0.5);
     }
 
     // ------------------------------------------------------------------ flight impact
@@ -221,14 +271,14 @@ public final class Combat {
         speed = Mth.clamp(speed, 0, Config.MAX_FLIGHT_SPEED.get() * 1.3);
         if (speed < 1.0) return;
         Vec3 origin = p.position().add(0, p.getBbHeight() * 0.5, 0).add(dir.scale(0.9));
-        double energy = speed * (0.35 + 0.65 * d.strength);
+        double energy = speed * (0.35 + 0.65 * PowerMath.eff(d));
         play(level, origin, speed > 2.4 ? ModSounds.SLAM.get() : ModSounds.LANDING.get(), 1.3f, 0.9f + level.random.nextFloat() * 0.2f);
         PowerSync.fx(level, FxPayload.SHOCKWAVE, origin, dir.scale(-1), (float) Mth.clamp(energy / 4.0, 0.2, 1.0), p.getId());
         crater(p, d, origin, energy);
 
         LivingEntity held = GrabHandler.target(p);
         if (held != null) { // ramming someone into the mountain
-            float ram = (float) (PowerMath.fullPunch(d.level) * (0.4 + speed / 3.0) * d.strength * d.strength + 4.0);
+            float ram = (float) (PowerMath.fullPunch(d.level) * (0.4 + speed / 3.0) * PowerMath.eff(d) * PowerMath.eff(d) + 4.0);
             hurtOnly(p, held, ram);
             play(level, held.position(), ModSounds.BONE_CRACK.get(), 1.4f, 0.8f);
             PowerSync.fx(level, FxPayload.BARRAGE_HIT, held.getBoundingBox().getCenter(), dir.scale(-1), 1.0f, p.getId());
@@ -256,7 +306,7 @@ public final class Combat {
         double hard = PowerMath.breakHardness(d);
         ServerLevel level = p.serverLevel();
         BlockPos c = BlockPos.containing(center);
-        int budget = Config.MAX_BLOCKS_PER_TICK.get() * 4;
+        int budget = Config.MAX_CRATER_BLOCKS.get();
         int broken = 0;
         RandomLike rnd = new RandomLike(c.asLong());
         for (int dx = -r; dx <= r && budget > 0; dx++)
@@ -266,7 +316,7 @@ public final class Combat {
                     double lim = r + 0.35 * (rnd.next() - 0.5) * r; // ragged rim
                     if (dist > lim) continue;
                     BlockPos bp = c.offset(dx, dy, dz);
-                    if (BlockSmasher.smash(p, level, bp, hard, rnd.next() < 0.25)) { budget--; broken++; }
+                    if (BlockSmasher.smash(p, level, bp, hard, broken % 30 == 0)) { budget--; broken++; }
                 }
         if (broken > 0) PowerSync.fx(level, FxPayload.CRATER, center, Vec3.ZERO, r, p.getId());
     }

@@ -68,6 +68,9 @@ public final class ServerHandlers {
             case 6 -> GrabHandler.toggle(sp, d);
             case 7 -> toggleSenses(sp, d);
             case 8 -> Combat.clap(sp, d);
+            case 9 -> ServerPower.toggleRage(sp, d);
+            case 10 -> Combat.stomp(sp, d);
+            case 11 -> GrabHandler.kill(sp, d);
             default -> { }
         }
     }

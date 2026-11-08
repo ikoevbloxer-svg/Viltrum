@@ -28,5 +28,6 @@ public class ModSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> SLAM = reg("slam");
     public static final DeferredHolder<SoundEvent, SoundEvent> CHARGE = reg("charge");
     public static final DeferredHolder<SoundEvent, SoundEvent> GRAB = reg("grab");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RAGE = reg("rage");
     public static final DeferredHolder<SoundEvent, SoundEvent> SUIT_EQUIP = reg("suit_equip");
 }

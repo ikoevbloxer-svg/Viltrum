@@ -9,13 +9,15 @@ import net.minecraft.world.item.Item;
 
 /** All balance formulas in one place so the GUI preview always matches what the server really does. */
 public final class PowerMath {
-    public static final int MAX_LEVEL = 30;
+    public static final int MAX_LEVEL = 50;
     /** "sound barrier" in blocks per tick (stylised, 48 blocks/s). */
     public static final double MACH = 2.4;
 
     public static final int UNLOCK_SENSES = 5;
     public static final int UNLOCK_GRAB = 10;
     public static final int UNLOCK_CLAP = 15;
+    public static final int UNLOCK_RAGE = 12;
+    public static final int UNLOCK_STOMP = 18;
 
     private PowerMath() {}
 
@@ -26,8 +28,13 @@ public final class PowerMath {
         return perLevelLow * low + perLevelHigh * high;
     }
 
+    /** effective output: the limiter chosen in the menu, boosted by rage up to 165%. */
+    public static double eff(PowerData d) {
+        return d.strength * (1.0 + 0.65 * d.rageAmt);
+    }
+
     public static double xpForNext(int level) {
-        return 80.0 * level * level + 40.0 * level;
+        return 120.0 * Math.pow(level, 1.5) + 60.0 * level;
     }
 
     /** damage of a bare-handed hit at 100% output. */
@@ -36,18 +43,18 @@ public final class PowerMath {
     }
 
     public static float punchDamage(PowerData d) {
-        double t = d.strength;
+        double t = eff(d);
         return (float) (1.0 + (fullPunch(d.level) - 1.0) * t * t);
     }
 
     /** launch velocity in blocks per tick. */
     public static double knockback(PowerData d) {
-        return Math.min(9.0, 0.35 + (0.35 + soft(d.level, 0.5, 0.12)) * d.strength);
+        return Math.min(12.0, 0.35 + (0.35 + soft(d.level, 0.5, 0.12)) * eff(d));
     }
 
     public static double cruiseSpeed(PowerData d) {
         double max = 0.55 + soft(d.level, 0.27, 0.05);
-        return 0.25 + (max - 0.25) * d.flightLimit;
+        return (0.25 + (max - 0.25) * d.flightLimit) * (1.0 + 0.3 * d.rageAmt);
     }
 
     public static double boostSpeed(PowerData d) {
@@ -58,13 +65,14 @@ public final class PowerMath {
     /** hardest block (destroy speed) that the current output can shatter by tunnelling / craters. 0 = nothing. */
     public static double breakHardness(PowerData d) {
         if (!d.allowDestruction || !Config.ALLOW_BLOCK_DESTRUCTION.get()) return 0;
-        if (d.strength < 0.25f) return 0;
-        return 2.0 + 62.0 * Math.min(3.0, (d.level - 1) / 9.0) * d.strength;
+        if (eff(d) < 0.25) return 0;
+        return 2.0 + 62.0 * Math.min(5.0, (d.level - 1) / 9.0) * eff(d);
     }
 
     public static int craterRadius(PowerData d, double energy) {
         if (breakHardness(d) <= 0) return 0;
-        double r = 1.0 + energy * 1.2 * (0.35 + 0.65 * d.strength) * (0.5 + Math.min(d.level, 20) / 10.0);
+        // destruction scale: several times larger than before
+        double r = 1.0 + energy * 3.6 * (0.35 + 0.65 * eff(d)) * (0.5 + Math.min(d.level, 30) / 10.0);
         return Mth.clamp((int) Math.round(r), 0, Config.MAX_CRATER_RADIUS.get());
     }
 

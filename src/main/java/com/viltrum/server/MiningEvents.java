@@ -2,6 +2,7 @@ package com.viltrum.server;
 
 import com.viltrum.Viltrum;
 import com.viltrum.data.PowerData;
+import com.viltrum.data.PowerMath;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -13,13 +14,13 @@ public class MiningEvents {
     public static void onBreakSpeed(PlayerEvent.BreakSpeed e) {
         PowerData d = e.getEntity().getData(com.viltrum.registry.ModAttachments.POWER.get());
         if (!d.viltrumite || !e.getEntity().getMainHandItem().isEmpty()) return;
-        float mult = 1f + (float) (d.level * 2.5 * d.strength * d.strength);
+        float mult = 1f + (float) (d.level * 2.5 * PowerMath.eff(d) * PowerMath.eff(d));
         e.setNewSpeed(e.getNewSpeed() * mult);
     }
 
     @SubscribeEvent
     public static void onHarvest(PlayerEvent.HarvestCheck e) {
         PowerData d = e.getEntity().getData(com.viltrum.registry.ModAttachments.POWER.get());
-        if (d.viltrumite && d.strength >= 0.3f && e.getEntity().getMainHandItem().isEmpty()) e.setCanHarvest(true);
+        if (d.viltrumite && PowerMath.eff(d) >= 0.3f && e.getEntity().getMainHandItem().isEmpty()) e.setCanHarvest(true);
     }
 }

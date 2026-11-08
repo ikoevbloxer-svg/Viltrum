@@ -18,6 +18,8 @@ public class PowerData {
     public boolean sonicFx = true;
     public boolean blood = true;
     public boolean grantedFly = false;
+    /** the first-join lottery has already been rolled for this player. */
+    public boolean rolled = false;
 
     // ---- runtime (synced, not saved)
     public boolean flying = false;
@@ -25,6 +27,9 @@ public class PowerData {
     public boolean charging = false;
     public boolean barraging = false;
     public boolean senses = false;
+    public boolean rage = false;
+    /** 0..1 ramp of the rage state; output is multiplied by 1 + 0.65 * rageAmt (up to 165%). */
+    public float rageAmt = 0f;
     /** entity id of the creature we are holding by the neck, -1 when none. */
     public int grabbedId = -1;
 
@@ -34,6 +39,11 @@ public class PowerData {
     public long barrageCooldownUntil = 0;
     public boolean machActive = false;
     public long lastClap = 0;
+    public int rageTicks = 0;
+    public long rageCooldownUntil = 0;
+    public long stompAt = 0;
+    public long lastStomp = 0;
+    public float rageSynced = 0f;
     public boolean dirty = false;
     public long lastSyncTick = 0;
 
@@ -47,6 +57,7 @@ public class PowerData {
         t.putBoolean("sonicFx", sonicFx);
         t.putBoolean("blood", blood);
         t.putBoolean("grantedFly", grantedFly);
+        t.putBoolean("rolled", rolled);
     }
 
     public void read(CompoundTag t) {
@@ -59,6 +70,7 @@ public class PowerData {
         sonicFx = !t.contains("sonicFx") || t.getBoolean("sonicFx");
         blood = !t.contains("blood") || t.getBoolean("blood");
         grantedFly = t.getBoolean("grantedFly");
+        rolled = t.getBoolean("rolled");
     }
 
     public void writeNet(FriendlyByteBuf b) {
@@ -68,9 +80,10 @@ public class PowerData {
         b.writeFloat(strength);
         b.writeFloat(flightLimit);
         int flags = (allowDestruction ? 1 : 0) | (sonicFx ? 2 : 0) | (blood ? 4 : 0)
-                | (flying ? 8 : 0) | (boosting ? 16 : 0) | (charging ? 32 : 0) | (barraging ? 64 : 0) | (senses ? 128 : 0);
+                | (flying ? 8 : 0) | (boosting ? 16 : 0) | (charging ? 32 : 0) | (barraging ? 64 : 0) | (senses ? 128 : 0) | (rage ? 256 : 0);
         b.writeVarInt(flags);
         b.writeVarInt(grabbedId + 1);
+        b.writeFloat(rageAmt);
     }
 
     public void readNet(FriendlyByteBuf b) {
@@ -89,6 +102,8 @@ public class PowerData {
         barraging = (f & 64) != 0;
         senses = (f & 128) != 0;
         grabbedId = b.readVarInt() - 1;
+        rage = (f & 256) != 0;
+        rageAmt = b.readFloat();
     }
 
     /** copies everything that the network sync carries. */
@@ -96,6 +111,6 @@ public class PowerData {
         viltrumite = o.viltrumite; level = o.level; xp = o.xp; strength = o.strength; flightLimit = o.flightLimit;
         allowDestruction = o.allowDestruction; sonicFx = o.sonicFx; blood = o.blood;
         flying = o.flying; boosting = o.boosting; charging = o.charging; barraging = o.barraging;
-        senses = o.senses; grabbedId = o.grabbedId;
+        senses = o.senses; grabbedId = o.grabbedId; rage = o.rage; rageAmt = o.rageAmt;
     }
 }

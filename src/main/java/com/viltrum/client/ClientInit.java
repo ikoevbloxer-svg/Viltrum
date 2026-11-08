@@ -27,6 +27,9 @@ public class ClientInit {
         e.register(ModKeys.GRAB);
         e.register(ModKeys.SENSES);
         e.register(ModKeys.CLAP);
+        e.register(ModKeys.RAGE);
+        e.register(ModKeys.STOMP);
+        e.register(ModKeys.KILL);
     }
 
     @SubscribeEvent

@@ -20,6 +20,8 @@ public final class ActionVisuals {
     /** victim entity id -> holder entity id */
     public static final Map<Integer, Integer> HELD = new HashMap<>();
     public static final Set<Integer> HOLDERS = new HashSet<>();
+    /** entity id -> entity.tickCount when its stomp animation started */
+    public static final Map<Integer, Integer> STOMP = new HashMap<>();
 
     private ActionVisuals() {}
 
@@ -34,7 +36,9 @@ public final class ActionVisuals {
             if (d.grabbedId >= 0) { HELD.put(d.grabbedId, p.getId()); HOLDERS.add(p.getId()); }
             if (d.barraging) barrage(lvl, p);
             if (d.charging) aura(lvl, p, p == mc.player ? FlightController.chargeFrac : 0.6f);
+            if (d.rageAmt > 0.05f) rageAura(lvl, p, d.rageAmt);
         }
+        STOMP.entrySet().removeIf(en -> { Entity e = lvl.getEntity(en.getKey()); return e == null || e.tickCount - en.getValue() > 16; });
         for (Entity e : lvl.entitiesForRendering()) {
             if (e instanceof ViltrumiteEntity v && v.getGrabTarget() >= 0) { HELD.put(v.getGrabTarget(), v.getId()); HOLDERS.add(v.getId()); }
         }
@@ -57,6 +61,22 @@ public final class ActionVisuals {
         if (p.tickCount % 3 == 0) {
             Vec3 at = base.add(look.scale(0.5));
             lvl.addParticle(ModParticles.SHOCK_RING.get(), at.x, at.y, at.z, look.x * 1.1, look.y * 1.1, look.z * 1.1);
+        }
+    }
+
+    private static void rageAura(ClientLevel lvl, AbstractClientPlayer p, float amt) {
+        var rnd = lvl.random;
+        net.minecraft.core.particles.DustParticleOptions red = new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(1.0f, 0.1f, 0.06f), 1.5f);
+        int n = 1 + (int) (amt * 3);
+        for (int i = 0; i < n; i++) {
+            lvl.addParticle(red, p.getX() + rnd.nextGaussian() * 0.35, p.getY() + rnd.nextDouble() * 2.0, p.getZ() + rnd.nextGaussian() * 0.35,
+                    rnd.nextGaussian() * 0.02, 0.06 + rnd.nextDouble() * 0.06, rnd.nextGaussian() * 0.02);
+        }
+        if (p.tickCount % 3 == 0) {
+            lvl.addParticle(net.minecraft.core.particles.ParticleTypes.FLAME, p.getX() + rnd.nextGaussian() * 0.3, p.getY() + 1.0 + rnd.nextDouble(), p.getZ() + rnd.nextGaussian() * 0.3, 0, 0.05, 0);
+        }
+        if (amt > 0.6f && p.tickCount % 5 == 0) {
+            lvl.addParticle(ModParticles.SPARK.get(), p.getX() + rnd.nextGaussian() * 0.4, p.getY() + 1.0 + rnd.nextGaussian() * 0.5, p.getZ() + rnd.nextGaussian() * 0.4, rnd.nextGaussian() * 0.1, 0.1, rnd.nextGaussian() * 0.1);
         }
     }
 

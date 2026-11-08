@@ -29,7 +29,7 @@ public final class FxHandler {
         boolean mine = mc.player != null && p.source() == mc.player.getId();
         var rnd = lvl.random;
 
-        switch (p.effect()) {
+        switch (p.type()) {
             case FxPayload.SHOCKWAVE -> {
                 Vec3 n = dir.lengthSqr() < 1e-4 ? new Vec3(0, 1, 0) : dir.normalize();
                 double r = 2.0 + 5.0 * s;
@@ -144,6 +144,42 @@ public final class FxHandler {
                     lvl.addParticle(ModParticles.SPARK.get(), pos.x, pos.y, pos.z, rnd.nextGaussian() * 0.15, rnd.nextGaussian() * 0.15, rnd.nextGaussian() * 0.15);
                 }
                 CameraShake.addAt(pos, 0.25f);
+            }
+            case FxPayload.STOMP -> {
+                Entity who = lvl.getEntity(p.source());
+                if (who != null) ActionVisuals.STOMP.put(who.getId(), who.tickCount);
+            }
+            case FxPayload.STOMP_IMPACT -> {
+                double r = s;
+                Vec3 at = pos.add(0, 0.1, 0);
+                lvl.addParticle(ModParticles.SHOCK_RING_WARM.get(), at.x, at.y, at.z, 0, r, 0);
+                lvl.addParticle(ModParticles.SHOCK_RING.get(), at.x, at.y + 0.05, at.z, 0, r * 0.7, 0);
+                lvl.addParticle(ModParticles.SHOCK_RING_WARM.get(), at.x, at.y + 0.1, at.z, 0, r * 0.4, 0);
+                for (int i = 0; i < 90; i++) {
+                    double a = rnd.nextDouble() * Math.PI * 2;
+                    double rr = rnd.nextDouble() * r * 0.35;
+                    double sp = 0.35 + rnd.nextDouble() * 0.6;
+                    lvl.addParticle(i % 3 == 0 ? ParticleTypes.CLOUD : ModParticles.VAPOR.get(), at.x + Math.cos(a) * rr, at.y + 0.2, at.z + Math.sin(a) * rr, Math.cos(a) * sp, 0.05 + rnd.nextDouble() * 0.1, Math.sin(a) * sp);
+                }
+                for (int i = 0; i < 50; i++) {
+                    double a = rnd.nextDouble() * Math.PI * 2;
+                    double sp = 0.4 + rnd.nextDouble() * 1.0;
+                    lvl.addParticle(ModParticles.SPARK.get(), at.x, at.y + 0.2, at.z, Math.cos(a) * sp, 0.15 + rnd.nextDouble() * 0.4, Math.sin(a) * sp);
+                }
+                lvl.addParticle(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y, at.z, 0, 0, 0);
+                CameraShake.addAt(pos, mine ? 1.0f : 1.2f);
+                if (mine) PowerHud.flash(0.5f);
+            }
+            case FxPayload.RAGE -> {
+                lvl.addParticle(ModParticles.SHOCK_RING_WARM.get(), pos.x, pos.y - 0.7, pos.z, 0, 5.0, 0);
+                lvl.addParticle(ModParticles.SHOCK_RING_WARM.get(), pos.x, pos.y + 0.2, pos.z, 0, 3.4, 0);
+                DustParticleOptions red = new DustParticleOptions(new Vector3f(1.0f, 0.1f, 0.06f), 1.6f);
+                for (int i = 0; i < 50; i++) {
+                    Vec3 v = new Vec3(rnd.nextGaussian(), rnd.nextGaussian() * 0.5, rnd.nextGaussian()).normalize().scale(0.1 + rnd.nextDouble() * 0.4);
+                    lvl.addParticle(red, pos.x, pos.y, pos.z, v.x, v.y, v.z);
+                }
+                CameraShake.addAt(pos, mine ? 0.8f : 0.5f);
+                if (mine) PowerHud.flash(0.35f);
             }
             default -> { }
         }
