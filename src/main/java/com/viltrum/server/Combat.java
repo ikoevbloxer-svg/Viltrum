@@ -181,7 +181,7 @@ public final class Combat {
         t.invulnerableTime = 0; // allow the next rapid hit
         ServerLevel level = p.serverLevel();
         Vec3 c = t.getBoundingBox().getCenter();
-        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, look.scale(-1), 0.35f + 0.5f * PowerMath.eff(d), p.getId());
+        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, look.scale(-1), (float) (0.35 + 0.5 * PowerMath.eff(d)), p.getId());
         if (now % 4 == 0) play(level, c, ModSounds.PUNCH_HEAVY.get(), 0.55f, 1.15f + level.random.nextFloat() * 0.25f);
         if (now % 12 == 0 && dmg > 12f) play(level, c, ModSounds.BONE_CRACK.get(), 0.6f, 0.9f + level.random.nextFloat() * 0.3f);
     }
