@@ -29,7 +29,7 @@ public final class FxHandler {
         boolean mine = mc.player != null && p.source() == mc.player.getId();
         var rnd = lvl.random;
 
-        switch (p.type()) {
+        switch (p.effect()) {
             case FxPayload.SHOCKWAVE -> {
                 Vec3 n = dir.lengthSqr() < 1e-4 ? new Vec3(0, 1, 0) : dir.normalize();
                 double r = 2.0 + 5.0 * s;
