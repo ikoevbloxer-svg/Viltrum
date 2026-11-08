@@ -127,6 +127,16 @@ def suit_equip():
     out += 0.25 * np.sin(2 * np.pi * 3100 * t) * np.exp(-(t - 0.4) * 11) * (t > 0.4)
     return fade(norm(out, 0.8), 0.002, 0.08)
 
+def grab_sound():
+    sec = 0.7; n = int(SR * sec); t = np.arange(n) / SR
+    cloth = shaped_noise(n, bp(500, 4500, 1.4), 51); cloth /= np.std(cloth)
+    cloth *= np.exp(-t * 14) * 0.9
+    thud = np.sin(2 * np.pi * (95 + 40 * np.exp(-t * 30)) * t) * np.exp(-t * 11) * 1.6
+    creak = shaped_noise(n, bp(180, 900, 2), 52); creak /= np.std(creak)
+    creak *= (np.exp(-((t - 0.28) / 0.12) ** 2)) * 0.5
+    x = np.tanh(1.4 * (cloth + thud + creak))
+    return fade(norm(x, 0.9), 0.001, 0.08)
+
 # ---------------------------------------------------------------- build
 def main():
     print('synthesizing...')
@@ -139,6 +149,7 @@ def main():
     write_ogg('slam', impact(1.9, 110, 30, 0.003, 32, 2.2))
     write_ogg('charge', charge())
     write_ogg('suit_equip', suit_equip())
+    write_ogg('grab', grab_sound())
 
     print('converting user sounds...')
     up = '/mnt/user-data/uploads/'

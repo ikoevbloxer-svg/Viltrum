@@ -33,6 +33,7 @@ public class ClientEvents {
         ClientPayloadHandlers.tickPending(mc);
         FlightController.clientTick(mc);
         FlightVisuals.tick(mc);
+        ActionVisuals.tick(mc);
         FlightSounds.tick(mc);
         CameraShake.tick();
 

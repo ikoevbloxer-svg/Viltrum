@@ -49,6 +49,19 @@ public final class Combat {
         return best;
     }
 
+    /** damage without any launch (used for holds, squeezes, thrown victims). */
+    public static boolean hurtOnly(ServerPlayer p, LivingEntity target, float dmg) {
+        if (target instanceof Player && !Config.PVP_SUPER_DAMAGE.get()) dmg = Math.min(dmg, 8f);
+        boolean prev = internal;
+        internal = true;
+        try {
+            target.invulnerableTime = 0;
+            boolean ok = target.hurt(p.damageSources().playerAttack(p), dmg);
+            if (ok) ServerPower.addXp(p, PowerSync.get(p), dmg * 0.25);
+            return ok;
+        } finally { internal = prev; }
+    }
+
     /** damage + launch. returns true when damage was actually applied. */
     public static boolean hit(ServerPlayer p, PowerData d, LivingEntity target, float dmg, Vec3 dir, double kb) {
         if (target instanceof Player && !Config.PVP_SUPER_DAMAGE.get()) dmg = Math.min(dmg, 8f);
@@ -72,6 +85,11 @@ public final class Combat {
     // ------------------------------------------------------------------ charged strike
     public static void strike(ServerPlayer p, PowerData d, float charge) {
         if (!d.viltrumite) return;
+        if (d.grabbedId >= 0) { // while holding someone the strike key hurls them
+            d.charging = false;
+            GrabHandler.release(p, d, true, Mth.clamp(charge, 0f, 1f));
+            return;
+        }
         ServerLevel level = p.serverLevel();
         long now = level.getGameTime();
         if (now - d.lastStrike < 10) return;
@@ -151,17 +169,46 @@ public final class Combat {
         if (now - d.barrageStart > 88) { stopBarrage(p, d, false); return; }
         if (now % 2 != 0) return;
         p.swing((now / 2) % 2 == 0 ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND, true);
-        LivingEntity t = findTarget(p, 4.2);
+        LivingEntity held = GrabHandler.target(p);
+        LivingEntity t = held != null ? held : findTarget(p, 4.2);
         if (t == null) return;
-        float dmg = PowerMath.punchDamage(d) * 0.22f * PowerMath.suitDamageMult(p);
+        float dmg = PowerMath.punchDamage(d) * (held != null ? 0.35f : 0.22f) * PowerMath.suitDamageMult(p);
         Vec3 look = p.getLookAngle();
-        // tiny knock-back so the target is pinned in front of the fists
-        hit(p, d, t, Math.max(1f, dmg), look, 0.12);
+        if (held != null) hurtOnly(p, t, Math.max(1f, dmg));
+        else hit(p, d, t, Math.max(1f, dmg), look, 0.12); // tiny knock-back keeps the target pinned in front of the fists
         t.invulnerableTime = 0; // allow the next rapid hit
         ServerLevel level = p.serverLevel();
         Vec3 c = t.getBoundingBox().getCenter();
-        PowerSync.fx(level, FxPayload.HIT_SPARKS, c, look.scale(-1), 0.25f, p.getId());
-        if (now % 6 == 0) play(level, c, ModSounds.PUNCH_HEAVY.get(), 0.5f, 1.25f + level.random.nextFloat() * 0.2f);
+        PowerSync.fx(level, FxPayload.BARRAGE_HIT, c, look.scale(-1), 0.35f + 0.5f * d.strength, p.getId());
+        if (now % 4 == 0) play(level, c, ModSounds.PUNCH_HEAVY.get(), 0.55f, 1.15f + level.random.nextFloat() * 0.25f);
+        if (now % 12 == 0 && dmg > 12f) play(level, c, ModSounds.BONE_CRACK.get(), 0.6f, 0.9f + level.random.nextFloat() * 0.3f);
+    }
+
+    // ------------------------------------------------------------------ thunderclap (level 15+)
+    public static void clap(ServerPlayer p, PowerData d) {
+        if (d.level < PowerMath.UNLOCK_CLAP) {
+            p.displayClientMessage(net.minecraft.network.chat.Component.translatable("msg.viltrum.locked", PowerMath.UNLOCK_CLAP), true);
+            return;
+        }
+        ServerLevel level = p.serverLevel();
+        long now = level.getGameTime();
+        if (now - d.lastClap < 100) return;
+        d.lastClap = now;
+        p.swing(InteractionHand.MAIN_HAND, true);
+        Vec3 c = p.position().add(0, 0.9, 0);
+        double radius = 5.0 + 0.3 * d.level * (0.3 + 0.7 * d.strength);
+        float dmg = PowerMath.punchDamage(d) * 0.45f * PowerMath.suitDamageMult(p);
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(radius), x -> x != p && x.isAlive())) {
+            double dist = e.position().distanceTo(c);
+            if (dist > radius) continue;
+            float falloff = (float) (1.0 - dist / radius * 0.8);
+            hit(p, d, e, dmg * falloff, e.position().subtract(c).add(0, 0.6, 0), PowerMath.knockback(d) * 0.9 * falloff);
+        }
+        play(level, c, ModSounds.SLAM.get(), 1.6f, 1.15f);
+        play(level, c, ModSounds.SONIC_BOOM.get(), 1.2f, 1.2f);
+        PowerSync.fx(level, FxPayload.SHOCKWAVE, p.position().add(0, 0.1, 0), new Vec3(0, 1, 0), (float) Mth.clamp(0.4 + d.strength * 0.6, 0, 1), p.getId());
+        PowerSync.fx(level, FxPayload.SONIC_BOOM, c, new Vec3(0, 1, 0), 1.0f, p.getId());
+        ServerPower.addXp(p, d, 3.0);
     }
 
     // ------------------------------------------------------------------ flight impact
@@ -179,16 +226,24 @@ public final class Combat {
         PowerSync.fx(level, FxPayload.SHOCKWAVE, origin, dir.scale(-1), (float) Mth.clamp(energy / 4.0, 0.2, 1.0), p.getId());
         crater(p, d, origin, energy);
 
+        LivingEntity held = GrabHandler.target(p);
+        if (held != null) { // ramming someone into the mountain
+            float ram = (float) (PowerMath.fullPunch(d.level) * (0.4 + speed / 3.0) * d.strength * d.strength + 4.0);
+            hurtOnly(p, held, ram);
+            play(level, held.position(), ModSounds.BONE_CRACK.get(), 1.4f, 0.8f);
+            PowerSync.fx(level, FxPayload.BARRAGE_HIT, held.getBoundingBox().getCenter(), dir.scale(-1), 1.0f, p.getId());
+        }
+
         double radius = 2.0 + energy * 0.9;
         float dmg = PowerMath.punchDamage(d) * 0.55f * (float) Mth.clamp(speed / 3.0, 0.3, 1.5);
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(origin, origin).inflate(radius), x -> x != p && x.isAlive())) {
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(origin, origin).inflate(radius), x -> x != p && x != held && x.isAlive())) {
             double dist = e.position().distanceTo(origin);
             if (dist > radius) continue;
             float falloff = (float) (1.0 - dist / radius);
             hit(p, d, e, dmg * falloff, e.position().subtract(origin).add(0, 0.5, 0), PowerMath.knockback(d) * 0.7 * falloff);
         }
         if (speed > 3.2 && !p.isCreative()) {
-            float self = (float) ((speed - 2.6) * 2.0 * (1.0 - PowerMath.damageResist(d)));
+            float self = (float) ((speed - 2.6) * 2.0 * (1.0 - PowerMath.damageResist(d)) * (held != null ? 0.25 : 1.0));
             if (self > 0.5f) { internal = true; try { p.hurt(p.damageSources().flyIntoWall(), Math.min(self, 6f)); } finally { internal = false; } }
         }
     }

@@ -65,7 +65,20 @@ public final class ServerHandlers {
                 if (dir.lengthSqr() < 1.0e-4) return;
                 Combat.impact(sp, d, Math.min(a.value(), Config.MAX_FLIGHT_SPEED.get() * 1.3), dir.normalize());
             }
+            case 6 -> GrabHandler.toggle(sp, d);
+            case 7 -> toggleSenses(sp, d);
+            case 8 -> Combat.clap(sp, d);
             default -> { }
         }
+    }
+
+    private static void toggleSenses(ServerPlayer sp, PowerData d) {
+        if (d.level < com.viltrum.data.PowerMath.UNLOCK_SENSES) {
+            sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("msg.viltrum.locked", com.viltrum.data.PowerMath.UNLOCK_SENSES), true);
+            return;
+        }
+        d.senses = !d.senses;
+        if (!d.senses) sp.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+        PowerSync.sync(sp);
     }
 }

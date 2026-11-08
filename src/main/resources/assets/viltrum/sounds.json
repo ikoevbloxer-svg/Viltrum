@@ -133,5 +133,13 @@
       }
     ],
     "subtitle": "subtitles.viltrum.suit_equip"
+  },
+  "grab": {
+    "sounds": [
+      {
+        "name": "viltrum:grab"
+      }
+    ],
+    "subtitle": "subtitles.viltrum.grab"
   }
 }

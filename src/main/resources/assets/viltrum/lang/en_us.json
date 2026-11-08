@@ -64,5 +64,16 @@
   "subtitles.viltrum.landing": "Hard landing",
   "subtitles.viltrum.slam": "Ground slam",
   "subtitles.viltrum.charge": "Power gathers",
-  "subtitles.viltrum.suit_equip": "Suit equipped"
+  "subtitles.viltrum.suit_equip": "Suit equipped",
+  "key.viltrum.grab": "Grab / release by the neck (level 10)",
+  "key.viltrum.senses": "Viltrumite senses (level 5)",
+  "key.viltrum.clap": "Thunderclap (level 15)",
+  "msg.viltrum.locked": "Unlocks at power level %s",
+  "msg.viltrum.nothing_to_grab": "Nothing within reach to grab",
+  "gui.viltrum.u.senses": "Senses",
+  "gui.viltrum.u.grab": "Neck grab",
+  "gui.viltrum.u.clap": "Thunderclap",
+  "gui.viltrum.hud.grab": "HOLDING   [%s] hurl   [%s] pummel   [%s] release",
+  "gui.viltrum.hud.senses": "SENSES",
+  "subtitles.viltrum.grab": "Grip tightens"
 }

@@ -13,6 +13,9 @@ import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /** Per-tick server logic of a Viltrumite player. */
@@ -56,6 +59,8 @@ public final class ServerPower {
         }
 
         if (d.barraging) Combat.tickBarrage(p, d);
+        if (d.grabbedId >= 0) GrabHandler.tick(p, d);
+        if (d.senses) sensesTick(p, d);
         if (d.flying) flightTick(p, d);
         else if (d.machActive) d.machActive = false;
 
@@ -82,32 +87,48 @@ public final class ServerPower {
         }
 
         // supersonic tunnelling: the pressure wave shatters whatever is in the way
-        if (speed > 1.4 && PowerMath.breakHardness(d) > 0) tunnel(p, d, vel, speed);
+        if (speed > 1.6 && PowerMath.breakHardness(d) > 0) tunnel(p, d, vel, speed);
     }
 
+    /**
+     * Supersonic pressure wave: shatters only what is right in front of the nose (1 to 2.4 blocks ahead of the body),
+     * never the floor under the feet and never anything behind or beside the flight path.
+     */
     private static void tunnel(ServerPlayer p, PowerData d, Vec3 vel, double speed) {
         ServerLevel level = p.serverLevel();
         double hard = PowerMath.breakHardness(d);
         Vec3 dir = vel.normalize();
-        double reach = Math.min(speed * 2.5, 12.0);
-        double radius = 1.0 + Math.min(1.2, speed * 0.25);
-        int r = (int) Math.ceil(radius);
         Vec3 base = p.position().add(0, p.getBbHeight() * 0.5, 0);
+        double footY = p.getY();
+        boolean diving = dir.y < -0.45;
+        double reach = speed > 3.0 ? 2.4 : 2.0;
         int budget = Config.MAX_BLOCKS_PER_TICK.get();
         int smashed = 0;
-        for (double t = 0; t <= reach && budget > 0; t += 1.0) {
+        for (double t = 1.0; t <= reach && budget > 0; t += 0.5) {
             Vec3 c = base.add(dir.scale(t));
             BlockPos cp = BlockPos.containing(c);
-            for (int dx = -r; dx <= r && budget > 0; dx++)
-                for (int dy = -r; dy <= r && budget > 0; dy++)
-                    for (int dz = -r; dz <= r && budget > 0; dz++) {
+            for (int dx = -1; dx <= 1 && budget > 0; dx++)
+                for (int dy = -1; dy <= 1 && budget > 0; dy++)
+                    for (int dz = -1; dz <= 1 && budget > 0; dz++) {
                         BlockPos bp = cp.offset(dx, dy, dz);
-                        if (bp.getCenter().distanceToSqr(c) > radius * radius) continue;
-                        if (BlockSmasher.smash(p, level, bp, hard, (smashed & 3) == 0)) { budget--; smashed++; }
+                        Vec3 bc = bp.getCenter();
+                        if (bc.distanceToSqr(c) > 0.9 * 0.9) continue;
+                        if (bc.subtract(base).dot(dir) < 0.6) continue;               // must be ahead of us
+                        if (!diving && bp.getY() + 1 <= footY + 0.01) continue;       // never the ground we skim over
+                        if (BlockSmasher.smash(p, level, bp, hard, (smashed & 1) == 0)) { budget--; smashed++; }
                     }
         }
-        if (smashed > 8 && p.tickCount % 6 == 0) {
-            Combat.play(level, p.position().add(dir.scale(3)), ModSounds.LANDING.get(), 0.9f, 1.3f);
+        if (smashed > 2 && p.tickCount % 5 == 0) {
+            Combat.play(level, p.position().add(dir.scale(2)), ModSounds.LANDING.get(), 0.8f, 1.3f);
+        }
+    }
+
+    private static void sensesTick(ServerPlayer p, PowerData d) {
+        if (d.level < PowerMath.UNLOCK_SENSES) { d.senses = false; PowerSync.sync(p); return; }
+        if (p.tickCount % 10 != 0) return;
+        p.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 260, 0, false, false));
+        for (LivingEntity e : p.serverLevel().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(40.0), x -> x != p && x.isAlive())) {
+            e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 30, 0, false, false));
         }
     }
 

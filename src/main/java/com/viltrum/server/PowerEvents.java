@@ -17,6 +17,10 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.viltrum.entity.ReanimenEntity;
+import com.viltrum.entity.ViltrumiteEntity;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(modid = Viltrum.MODID)
@@ -65,12 +69,29 @@ public class PowerEvents {
         LivingEntity victim = e.getEntity();
         if (victim instanceof ServerPlayer vp) {
             PowerData vd = PowerSync.get(vp);
+            // human shield: projectiles and attacks from the front hit the held creature instead
+            if (vd.grabbedId >= 0 && !Combat.internal) {
+                LivingEntity shield = GrabHandler.target(vp);
+                var attacker = e.getSource().getEntity();
+                if (shield != null && attacker != shield) {
+                    boolean front = e.getSource().getDirectEntity() instanceof Projectile
+                            || (attacker != null && vp.getLookAngle().dot(attacker.position().subtract(vp.position()).normalize()) > 0.3);
+                    if (front) {
+                        boolean prev = Combat.internal;
+                        Combat.internal = true;
+                        try { shield.invulnerableTime = 0; shield.hurt(e.getSource(), e.getAmount() * 0.8f); } finally { Combat.internal = prev; }
+                        e.setCanceled(true);
+                        return;
+                    }
+                }
+            }
             if (vd.viltrumite) {
                 if (e.getSource().is(DamageTypes.FALL) || e.getSource().is(DamageTypes.FLY_INTO_WALL) && !Combat.internal) {
                     e.setCanceled(true);
                     return;
                 }
                 float resist = (float) PowerMath.damageResist(vd);
+                if (e.getSource().getEntity() instanceof ViltrumiteEntity) resist *= 0.6f; // their blows hurt even a Viltrumite
                 if (e.getSource().is(DamageTypes.EXPLOSION) || e.getSource().is(DamageTypes.PLAYER_EXPLOSION)) resist = Math.min(0.97f, resist + 0.25f);
                 e.setAmount(e.getAmount() * (1f - resist));
             }
@@ -99,6 +120,7 @@ public class PowerEvents {
             PowerData ad = PowerSync.get(ap);
             if (!ad.viltrumite) return;
             LivingEntity v = e.getEntity();
+            if (GrabHandler.isGrabbed(v)) return;
             float scale = ap.getAttackStrengthScale(0.5f);
             double kb = PowerMath.knockback(ad) * (0.35 + 0.65 * scale);
             Vec3 dir = v.position().subtract(ap.position()).multiply(1, 0, 1);
@@ -108,6 +130,22 @@ public class PowerEvents {
             v.hurtMarked = true;
             ServerPower.addXp(ap, ad, e.getNewDamage() * 0.35);
         }
+    }
+
+    @SubscribeEvent
+    public static void onDeathRevive(LivingDeathEvent e) {
+        if (e.getEntity() instanceof ReanimenEntity r && r.tryRevive()) e.setCanceled(true);
+        if (e.getEntity() instanceof ServerPlayer sp) GrabHandler.forget(sp);
+    }
+
+    @SubscribeEvent
+    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) GrabHandler.forget(sp);
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post e) {
+        GrabHandler.tickThrown(e.getServer());
     }
 
     @SubscribeEvent

@@ -64,5 +64,16 @@
   "subtitles.viltrum.landing": "Жёсткая посадка",
   "subtitles.viltrum.slam": "Удар о землю",
   "subtitles.viltrum.charge": "Накопление силы",
-  "subtitles.viltrum.suit_equip": "Костюм надет"
+  "subtitles.viltrum.suit_equip": "Костюм надет",
+  "key.viltrum.grab": "Схватить за шею / отпустить (ур. 10)",
+  "key.viltrum.senses": "Чувства вилтрумита (ур. 5)",
+  "key.viltrum.clap": "Громовой хлопок (ур. 15)",
+  "msg.viltrum.locked": "Открывается на уровне силы %s",
+  "msg.viltrum.nothing_to_grab": "Некого схватить",
+  "gui.viltrum.u.senses": "Чувства",
+  "gui.viltrum.u.grab": "Хват за шею",
+  "gui.viltrum.u.clap": "Громовой хлопок",
+  "gui.viltrum.hud.grab": "ДЕРЖИШЬ   [%s] бросок   [%s] избиение   [%s] отпустить",
+  "gui.viltrum.hud.senses": "ЧУВСТВА",
+  "subtitles.viltrum.grab": "Хватка сжимается"
 }

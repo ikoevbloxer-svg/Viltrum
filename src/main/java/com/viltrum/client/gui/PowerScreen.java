@@ -18,7 +18,7 @@ import org.lwjgl.glfw.GLFW;
 
 /** The power menu: output limiter ("hold back"), flight speed limiter, toggles and a live preview of what the numbers mean. */
 public class PowerScreen extends Screen {
-    private static final int W = 400, H = 252;
+    private static final int W = 400, H = 296;
     private static final int BG = 0xE80B0F17, PANEL = 0xFF131A26, EDGE = 0xFF263246;
     private static final int CYAN = 0xFF35D6FF, GOLD = 0xFFF7C61C, TEXT = 0xFFEAF2FF, DIM = 0xFF8A97AD;
 
@@ -165,6 +165,7 @@ public class PowerScreen extends Screen {
         toggle(g, 0, "gui.viltrum.t.destroy", d.allowDestruction, mx, my, al);
         toggle(g, 1, "gui.viltrum.t.sonic", d.sonicFx, mx, my, al);
         toggle(g, 2, "gui.viltrum.t.blood", d.blood, mx, my, al);
+        unlocks(g, al);
         stats(g, al);
 
         text(g, Component.translatable("gui.viltrum.keys", ModKeys.FLIGHT.getTranslatedKeyMessage().getString(),
@@ -223,6 +224,23 @@ public class PowerScreen extends Screen {
         int kx = r[0] + r[2] - 18, ky = r[1] + 7;
         rr(g, kx, ky, kx + 12, ky + 8, 4, a(al, on ? 0x35D6FF : 0x2B374B));
         rr(g, kx + (on ? 6 : 1), ky + 1, kx + (on ? 11 : 6), ky + 7, 3, a(al, 0xF4F8FF));
+    }
+
+    private void unlocks(GuiGraphics g, float al) {
+        String[] names = {"gui.viltrum.u.senses", "gui.viltrum.u.grab", "gui.viltrum.u.clap"};
+        int[] lvls = {PowerMath.UNLOCK_SENSES, PowerMath.UNLOCK_GRAB, PowerMath.UNLOCK_CLAP};
+        net.minecraft.client.KeyMapping[] keys = {ModKeys.SENSES, ModKeys.GRAB, ModKeys.CLAP};
+        int y = py + 204, x0 = px + 14, cw = (W - 28 - 2 * 8) / 3;
+        for (int i = 0; i < 3; i++) {
+            int x = x0 + i * (cw + 8);
+            boolean ok = d.level >= lvls[i];
+            rr(g, x, y, x + cw, y + 20, 5, a(al, ok ? 0x123826 : 0x1A1F2B));
+            g.fill(x, y + 4, x + 2, y + 16, a(al, ok ? 0x35E08A : 0x4A5568));
+            String label = Component.translatable(names[i]).getString();
+            text(g, label, x + 8, y + 6, a(al, ok ? TEXT : DIM), 0.8f);
+            String tag = ok ? "[" + keys[i].getTranslatedKeyMessage().getString() + "]" : "LV " + lvls[i];
+            text(g, tag, x + cw - 6 - (int) (font.width(tag) * 0.8f), y + 6, a(al, ok ? 0xFF7FE8FF : 0xFFF7C61C), 0.8f);
+        }
     }
 
     private void stats(GuiGraphics g, float al) {

@@ -43,6 +43,10 @@ public class PowerHud implements LayeredDraw.Layer {
         if (FlightController.charging) chargeRing(g, w / 2, h / 2, FlightController.chargeFrac, time);
         if (d.flying) gauge(g, d, w, h);
         chip(g, mc, d, w, h);
+        if (d.grabbedId >= 0) {
+            g.drawCenteredString(mc.font, Component.translatable("gui.viltrum.hud.grab", com.viltrum.client.ModKeys.STRIKE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.BARRAGE.getTranslatedKeyMessage(), com.viltrum.client.ModKeys.GRAB.getTranslatedKeyMessage()), w / 2, h - 80, 0xFFFFC060);
+        }
+        if (d.senses) g.drawString(mc.font, Component.translatable("gui.viltrum.hud.senses"), 6, h - 34, 0xFF7FE8FF, false);
     }
 
     private void vignette(GuiGraphics g, int w, int h, float sf) {

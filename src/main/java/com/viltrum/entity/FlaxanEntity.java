@@ -33,11 +33,11 @@ public class FlaxanEntity extends Monster {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 34.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.27)
-                .add(Attributes.ATTACK_DAMAGE, 4.0)
-                .add(Attributes.ARMOR, 3.0)
-                .add(Attributes.FOLLOW_RANGE, 40.0);
+                .add(Attributes.MAX_HEALTH, 60.0)
+                .add(Attributes.MOVEMENT_SPEED, 0.30)
+                .add(Attributes.ATTACK_DAMAGE, 8.0)
+                .add(Attributes.ARMOR, 6.0)
+                .add(Attributes.FOLLOW_RANGE, 48.0);
     }
 
     @Override
@@ -89,21 +89,42 @@ public class FlaxanEntity extends Monster {
         @Override
         public void start() { aim = 0; }
 
+        private int burst = 0;
+        private int strafeDir = 1;
+
         @Override
         public void tick() {
             LivingEntity t = f.getTarget();
             if (t == null) return;
             f.getLookControl().setLookAt(t, 30.0f, 30.0f);
             f.getNavigation().stop();
+            // never stand still: circle-strafe and keep a distance
+            if (f.getRandom().nextInt(30) == 0) strafeDir = -strafeDir;
+            float fwd = f.distanceToSqr(t) < 100.0 ? -0.5f : 0.0f;
+            f.getMoveControl().strafe(fwd, 0.6f * strafeDir);
             aim++;
             if (cooldown > 0) cooldown--;
-            if (aim >= 16 && cooldown <= 0 && f.level() instanceof ServerLevel sl) {
-                Vec3 from = f.getEyePosition().add(f.getLookAngle().scale(0.5));
-                Vec3 dir = t.getEyePosition().subtract(from).normalize();
-                BeamUtil.fire(sl, f, from, dir, 40.0, 5.0f);
-                cooldown = 35 + f.getRandom().nextInt(25);
+            if (burst > 0) {
+                if (--burstTimer <= 0 && f.level() instanceof ServerLevel sl) {
+                    fireOne(sl, t);
+                    burst--;
+                    burstTimer = 4;
+                }
+            } else if (aim >= 12 && cooldown <= 0) {
+                burst = 3;
+                burstTimer = 0;
                 aim = 0;
+                cooldown = 50 + f.getRandom().nextInt(30);
             }
+        }
+
+        private int burstTimer = 0;
+
+        private void fireOne(ServerLevel sl, LivingEntity t) {
+            Vec3 from = f.getEyePosition().add(f.getLookAngle().scale(0.5));
+            Vec3 target = t.getEyePosition().add(t.getDeltaMovement().scale(3.0)); // leads moving targets
+            Vec3 dir = target.subtract(from).normalize();
+            BeamUtil.fire(sl, f, from, dir, 40.0, 7.0f);
         }
 
         @Override

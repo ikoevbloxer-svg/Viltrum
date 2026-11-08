@@ -24,6 +24,9 @@ public class ClientInit {
         e.register(ModKeys.FLIGHT);
         e.register(ModKeys.STRIKE);
         e.register(ModKeys.BARRAGE);
+        e.register(ModKeys.GRAB);
+        e.register(ModKeys.SENSES);
+        e.register(ModKeys.CLAP);
     }
 
     @SubscribeEvent

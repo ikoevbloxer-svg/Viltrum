@@ -24,12 +24,16 @@ public class PowerData {
     public boolean boosting = false;
     public boolean charging = false;
     public boolean barraging = false;
+    public boolean senses = false;
+    /** entity id of the creature we are holding by the neck, -1 when none. */
+    public int grabbedId = -1;
 
     // ---- server only runtime
     public long lastStrike = 0;
     public long barrageStart = 0;
     public long barrageCooldownUntil = 0;
     public boolean machActive = false;
+    public long lastClap = 0;
     public boolean dirty = false;
     public long lastSyncTick = 0;
 
@@ -64,8 +68,9 @@ public class PowerData {
         b.writeFloat(strength);
         b.writeFloat(flightLimit);
         int flags = (allowDestruction ? 1 : 0) | (sonicFx ? 2 : 0) | (blood ? 4 : 0)
-                | (flying ? 8 : 0) | (boosting ? 16 : 0) | (charging ? 32 : 0) | (barraging ? 64 : 0);
+                | (flying ? 8 : 0) | (boosting ? 16 : 0) | (charging ? 32 : 0) | (barraging ? 64 : 0) | (senses ? 128 : 0);
         b.writeVarInt(flags);
+        b.writeVarInt(grabbedId + 1);
     }
 
     public void readNet(FriendlyByteBuf b) {
@@ -82,6 +87,8 @@ public class PowerData {
         boosting = (f & 16) != 0;
         charging = (f & 32) != 0;
         barraging = (f & 64) != 0;
+        senses = (f & 128) != 0;
+        grabbedId = b.readVarInt() - 1;
     }
 
     /** copies everything that the network sync carries. */
@@ -89,5 +96,6 @@ public class PowerData {
         viltrumite = o.viltrumite; level = o.level; xp = o.xp; strength = o.strength; flightLimit = o.flightLimit;
         allowDestruction = o.allowDestruction; sonicFx = o.sonicFx; blood = o.blood;
         flying = o.flying; boosting = o.boosting; charging = o.charging; barraging = o.barraging;
+        senses = o.senses; grabbedId = o.grabbedId;
     }
 }

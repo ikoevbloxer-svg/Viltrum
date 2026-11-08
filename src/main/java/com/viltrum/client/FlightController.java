@@ -72,10 +72,16 @@ public final class FlightController {
         }
         if (!d.viltrumite) {
             while (ModKeys.FLIGHT.consumeClick()) { }
+            while (ModKeys.GRAB.consumeClick()) { }
+            while (ModKeys.SENSES.consumeClick()) { }
+            while (ModKeys.CLAP.consumeClick()) { }
             charging = false; chargeFrac = 0f;
             return;
         }
         while (ModKeys.FLIGHT.consumeClick()) toggle(p);
+        while (ModKeys.GRAB.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(6));
+        while (ModKeys.SENSES.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(7));
+        while (ModKeys.CLAP.consumeClick()) PacketDistributor.sendToServer(ActionPayload.simple(8));
 
         // double tap jump starts flight (like creative)
         boolean jump = o.keyJump.isDown() && mc.screen == null;
@@ -113,6 +119,8 @@ public final class FlightController {
             PacketDistributor.sendToServer(ActionPayload.simple(1));
         }
         if (!d.barraging && barrageHeld && !ModKeys.BARRAGE.isDown()) barrageHeld = false;
+
+        if (d.barraging) CameraShake.add(0.018f);
 
         // speed rumble + fov inputs
         float sf = (float) Mth.clamp((speed - 1.2) / 3.0, 0.0, 1.0);

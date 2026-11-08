@@ -8,20 +8,25 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
-/** Limb poses applied after vanilla setupAnim (called from HumanoidModelMixin): superman flight, charge wind-up, barrage. */
+/** Limb poses applied after vanilla setupAnim (called from HumanoidModelMixin): flight, charge, barrage, neck grab. */
 public final class PoseHooks {
     private PoseHooks() {}
 
     public static void apply(HumanoidModel<?> m, LivingEntity e, float age) {
+        // the one being held dangles
+        if (ActionVisuals.HELD.containsKey(e.getId())) { dangling(m, age); return; }
+
         FlightVisuals.Track t = FlightVisuals.TRACKS.get(e.getId());
         if (e instanceof Player p) {
             PowerData d = p.getData(ModAttachments.POWER.get());
             if (!d.viltrumite) return;
             if (d.flying && t != null) { flight(m, t, age); return; }
-            if (d.barraging) { barrage(m, age); return; }
-            if (d.charging) { charge(m, age); }
-        } else if (e instanceof ViltrumiteEntity v && v.isFlyingPose() && t != null) {
-            flight(m, t, age);
+            if (d.barraging) { barrage(m, age, d.grabbedId >= 0); return; }
+            if (d.grabbedId >= 0) { hold(m, age); return; }
+            if (d.charging) charge(m, age);
+        } else if (e instanceof ViltrumiteEntity v) {
+            if (v.isFlyingPose() && t != null) flight(m, t, age);
+            else if (v.getGrabTarget() >= 0) hold(m, age);
         }
     }
 
@@ -66,13 +71,60 @@ public final class PoseHooks {
         m.hat.copyFrom(m.head);
     }
 
-    private static void barrage(HumanoidModel<?> m, float age) {
-        float s = Mth.sin(age * 1.9f);
-        m.body.yRot = s * 0.18f;
-        m.rightArm.xRot = -1.45f + s * 0.65f;
-        m.leftArm.xRot = -1.45f - s * 0.65f;
-        m.rightArm.yRot = -0.25f;
-        m.leftArm.yRot = 0.25f;
-        m.rightArm.zRot = 0f; m.leftArm.zRot = 0f;
+    /** alternating straight punches: arms snap out and back, torso twists into each blow, braced stance. */
+    private static void barrage(HumanoidModel<?> m, float age, boolean holding) {
+        neutral(m);
+        float ph = age * 1.9f;
+        float r = Mth.sin(ph) * 0.5f + 0.5f;                 // right arm extension 0..1
+        float l = Mth.sin(ph + Mth.PI) * 0.5f + 0.5f;        // left arm extension (opposite phase)
+        float twist = (r - l) * 0.55f;
+
+        m.body.xRot = 0.22f;
+        m.body.yRot = twist;
+        m.head.yRot = -twist * 0.6f;
+        m.head.xRot = -0.12f;
+
+        m.rightArm.xRot = Mth.lerp(r, -0.95f, -1.62f);
+        m.rightArm.yRot = Mth.lerp(r, 0.55f, -0.12f) + twist * 0.3f;
+        m.rightArm.zRot = Mth.lerp(r, 0.18f, 0f);
+        m.leftArm.xRot = Mth.lerp(l, -0.95f, -1.62f);
+        m.leftArm.yRot = Mth.lerp(l, -0.55f, 0.12f) + twist * 0.3f;
+        m.leftArm.zRot = Mth.lerp(l, -0.18f, 0f);
+
+        m.rightLeg.xRot = -0.38f; m.rightLeg.zRot = 0.1f; m.rightLeg.yRot = 0.1f;
+        m.leftLeg.xRot = 0.46f; m.leftLeg.zRot = -0.1f; m.leftLeg.yRot = -0.1f;
+        if (holding) { m.rightArm.xRot -= 0.1f; m.leftArm.xRot -= 0.1f; }
+        m.hat.copyFrom(m.head);
+    }
+
+    /** both arms thrust forward at throat height. */
+    private static void hold(HumanoidModel<?> m, float age) {
+        neutral(m);
+        float strain = Mth.sin(age * 0.9f) * 0.03f;
+        m.body.xRot = 0.1f;
+        m.rightArm.xRot = -1.52f + strain;
+        m.rightArm.yRot = -0.14f;
+        m.leftArm.xRot = -1.38f - strain;
+        m.leftArm.yRot = 0.3f;
+        m.head.xRot = Mth.clamp(m.head.xRot, -0.5f, 0.4f);
+        m.hat.copyFrom(m.head);
+    }
+
+    /** limp: arms clawing at the hand around the throat, legs kicking. */
+    private static void dangling(HumanoidModel<?> m, float age) {
+        neutral(m);
+        float kick = Mth.sin(age * 0.45f) * 0.22f;
+        m.body.xRot = -0.08f;
+        m.rightArm.xRot = -2.45f + Mth.sin(age * 0.8f) * 0.1f;
+        m.rightArm.zRot = -0.32f;
+        m.rightArm.yRot = 0.28f;
+        m.leftArm.xRot = -2.45f - Mth.sin(age * 0.8f) * 0.1f;
+        m.leftArm.zRot = 0.32f;
+        m.leftArm.yRot = -0.28f;
+        m.rightLeg.xRot = 0.15f + kick;
+        m.leftLeg.xRot = 0.15f - kick;
+        m.rightLeg.zRot = 0.05f; m.leftLeg.zRot = -0.05f;
+        m.head.xRot = -0.55f;
+        m.hat.copyFrom(m.head);
     }
 }

@@ -10,5 +10,9 @@ public final class ModKeys {
     public static final KeyMapping STRIKE = new KeyMapping("key.viltrum.strike", GLFW.GLFW_KEY_X, CATEGORY);
     public static final KeyMapping BARRAGE = new KeyMapping("key.viltrum.barrage", GLFW.GLFW_KEY_Z, CATEGORY);
 
+    public static final KeyMapping GRAB = new KeyMapping("key.viltrum.grab", GLFW.GLFW_KEY_C, CATEGORY);
+    public static final KeyMapping SENSES = new KeyMapping("key.viltrum.senses", GLFW.GLFW_KEY_N, CATEGORY);
+    public static final KeyMapping CLAP = new KeyMapping("key.viltrum.clap", GLFW.GLFW_KEY_H, CATEGORY);
+
     private ModKeys() {}
 }

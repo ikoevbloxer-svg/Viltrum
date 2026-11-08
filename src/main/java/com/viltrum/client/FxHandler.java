@@ -109,6 +109,42 @@ public final class FxHandler {
                 }
                 if (mine) CameraShake.add(0.25f);
             }
+            case FxPayload.BARRAGE_HIT -> {
+                Vec3 n = dir.lengthSqr() < 1e-4 ? new Vec3(0, 1, 0) : dir.normalize();
+                // flat shock ring facing the attacker, small and fast
+                lvl.addParticle(ModParticles.SHOCK_RING_WARM.get(), pos.x + n.x * 0.15, pos.y + n.y * 0.15, pos.z + n.z * 0.15, n.x * (1.4 + s), n.y * (1.4 + s), n.z * (1.4 + s));
+                // star-burst: streaks radiating in the plane of the ring
+                Vec3 up = Math.abs(n.y) < 0.95 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
+                Vec3 a = n.cross(up).normalize();
+                Vec3 b = n.cross(a).normalize();
+                for (int i = 0; i < 5; i++) {
+                    double ang = rnd.nextDouble() * Math.PI * 2;
+                    double len = 1.0 + rnd.nextDouble() * (1.2 + s);
+                    Vec3 v = a.scale(Math.cos(ang) * len).add(b.scale(Math.sin(ang) * len));
+                    lvl.addParticle(ModParticles.STREAK.get(), pos.x, pos.y, pos.z, v.x, v.y, v.z);
+                }
+                int cnt = (int) (6 + 8 * s);
+                for (int i = 0; i < cnt; i++) {
+                    Vec3 v = n.add(rnd.nextGaussian() * 0.7, rnd.nextGaussian() * 0.7, rnd.nextGaussian() * 0.7).normalize().scale(0.15 + rnd.nextDouble() * 0.45);
+                    lvl.addParticle(ModParticles.SPARK.get(), pos.x, pos.y, pos.z, v.x, v.y, v.z);
+                }
+                lvl.addParticle(ParticleTypes.CRIT, pos.x, pos.y, pos.z, n.x * 0.3 + rnd.nextGaussian() * 0.2, 0.2 + rnd.nextDouble() * 0.3, n.z * 0.3 + rnd.nextGaussian() * 0.2);
+                Entity src = lvl.getEntity(p.source());
+                boolean blood = !(src instanceof Player sp) || sp.getData(ModAttachments.POWER.get()).blood;
+                if (blood) {
+                    DustParticleOptions red = new DustParticleOptions(new Vector3f(0.62f, 0.02f, 0.03f), 1.0f);
+                    for (int i = 0; i < 4; i++) lvl.addParticle(red, pos.x, pos.y, pos.z, n.x * 0.15 + rnd.nextGaussian() * 0.08, rnd.nextGaussian() * 0.08, n.z * 0.15 + rnd.nextGaussian() * 0.08);
+                }
+                CameraShake.addAt(pos, mine ? 0.1f : 0.07f);
+                if (mine) PowerHud.flash(0.06f);
+            }
+            case FxPayload.GRAB -> {
+                lvl.addParticle(ModParticles.SHOCK_RING.get(), pos.x, pos.y, pos.z, dir.x * 1.8, dir.y * 1.8, dir.z * 1.8);
+                for (int i = 0; i < 16; i++) {
+                    lvl.addParticle(ModParticles.SPARK.get(), pos.x, pos.y, pos.z, rnd.nextGaussian() * 0.15, rnd.nextGaussian() * 0.15, rnd.nextGaussian() * 0.15);
+                }
+                CameraShake.addAt(pos, 0.25f);
+            }
             default -> { }
         }
     }
