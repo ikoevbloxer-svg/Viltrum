@@ -6,13 +6,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** server -> clients nearby: visual effect request. */
-<<<<<<< HEAD
 public record FxPayload(int type, double x, double y, double z, float dx, float dy, float dz, float strength, int source) implements CustomPacketPayload {
     public static final int SHOCKWAVE = 0, SONIC_BOOM = 1, CRATER = 2, STOP_BARRAGE = 3, LEVEL_UP = 4, HIT_SPARKS = 5, TAKEOFF = 6, BARRAGE_HIT = 7, GRAB = 8, CHOKE = 9, STOMP = 10, STOMP_IMPACT = 11, RAGE = 12;
-=======
-public record FxPayload(int effect, double x, double y, double z, float dx, float dy, float dz, float strength, int source) implements CustomPacketPayload {
-    public static final int SHOCKWAVE = 0, SONIC_BOOM = 1, CRATER = 2, STOP_BARRAGE = 3, LEVEL_UP = 4, HIT_SPARKS = 5, TAKEOFF = 6, BARRAGE_HIT = 7, GRAB = 8, CHOKE = 9;
->>>>>>> 2ae4e2f482c0e9b20d1c7922ee1d6c4af2c0d9f0
 
     public static final Type<FxPayload> TYPE = new Type<>(Viltrum.id("fx"));
     public static final StreamCodec<FriendlyByteBuf, FxPayload> CODEC = StreamCodec.of(
