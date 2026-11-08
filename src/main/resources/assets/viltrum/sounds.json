@@ -1,0 +1,137 @@
+{
+  "punch_heavy": {
+    "sounds": [
+      {
+        "name": "viltrum:punch_heavy",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.punch_heavy"
+  },
+  "punch_super": {
+    "sounds": [
+      {
+        "name": "viltrum:punch_super",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.punch_super"
+  },
+  "punch_barrage": {
+    "sounds": [
+      {
+        "name": "viltrum:punch_barrage",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.punch_barrage"
+  },
+  "bone_crack": {
+    "sounds": [
+      {
+        "name": "viltrum:bone_crack",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.bone_crack"
+  },
+  "level_up": {
+    "sounds": [
+      {
+        "name": "viltrum:level_up",
+        "stream": true
+      }
+    ],
+    "subtitle": "subtitles.viltrum.level_up"
+  },
+  "laser": {
+    "sounds": [
+      {
+        "name": "viltrum:laser",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.laser"
+  },
+  "flight_start": {
+    "sounds": [
+      {
+        "name": "viltrum:flight_start",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.flight_start"
+  },
+  "flight_loop": {
+    "sounds": [
+      {
+        "name": "viltrum:flight_loop",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.flight_loop"
+  },
+  "flight_fast": {
+    "sounds": [
+      {
+        "name": "viltrum:flight_fast",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.flight_fast"
+  },
+  "flight_boost": {
+    "sounds": [
+      {
+        "name": "viltrum:flight_boost",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.flight_boost"
+  },
+  "sonic_boom": {
+    "sounds": [
+      {
+        "name": "viltrum:sonic_boom",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.sonic_boom"
+  },
+  "landing": {
+    "sounds": [
+      {
+        "name": "viltrum:landing",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.landing"
+  },
+  "slam": {
+    "sounds": [
+      {
+        "name": "viltrum:slam",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.slam"
+  },
+  "charge": {
+    "sounds": [
+      {
+        "name": "viltrum:charge",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.charge"
+  },
+  "suit_equip": {
+    "sounds": [
+      {
+        "name": "viltrum:suit_equip",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitles.viltrum.suit_equip"
+  }
+}

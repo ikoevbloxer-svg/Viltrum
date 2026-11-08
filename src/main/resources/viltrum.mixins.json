@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.viltrum.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "HumanoidModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "viltrum"
+version = "1.0.0"
+displayName = "Viltrum - Invincible Powers"
+authors = "Claude"
+description = '''
+Viltrumite powers inspired by Invincible: supersonic flight, devastating strikes,
+a power limiter, suits, Reanimen, Flaxans and Viltrumites.
+'''
+
+[[mixins]]
+config = "viltrum.mixins.json"
+
+[[dependencies.viltrum]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.viltrum]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
